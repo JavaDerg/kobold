@@ -1,5 +1,7 @@
 mod cfg;
+mod db;
 
+use crate::db::DbManager;
 use actix_redis::RedisActor;
 use actix_web::{middleware, App, HttpServer};
 use env_logger::Env;
@@ -9,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
 	env_logger::from_env(Env::default().default_filter_or("info")).init();
 
 	let config = cfg::load()?;
-	let pg_pool = config.pg.create_pool(tokio_postgres::NoTls)?;
+	let pg_pool = DbManager::new(config.pg.create_pool(tokio_postgres::NoTls)?);
 	let rd_pool = RedisActor::start(config.server.redis);
 
 	let mut server = HttpServer::new(move || {
