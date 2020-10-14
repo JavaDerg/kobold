@@ -1,0 +1,13 @@
+[server]
+listeners = [
+    "127.0.0.1:5000"
+]
+redis = "127.0.0.1:6379"
+
+[pg]
+host = "127.0.0.1"
+port = 5432
+user = "postgres"
+password = "postgres"
+dbname = "postgres"
+pool = { max_size = 16 }
