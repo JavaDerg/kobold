@@ -6,9 +6,13 @@ use actix_redis::RedisActor;
 use actix_web::{middleware, App, HttpServer};
 use env_logger::Env;
 
+type STR = str;
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
 	env_logger::from_env(Env::default().default_filter_or("info")).init();
+
+	log::warn!("{}", db::DbManager::GET_PEOPLE);
 
 	let config = cfg::load()?;
 	let pg_pool = DbManager::new(config.pg.create_pool(tokio_postgres::NoTls)?);
