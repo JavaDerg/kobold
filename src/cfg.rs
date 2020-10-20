@@ -2,8 +2,17 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct AppConfig {
-	pub pg: deadpool_postgres::Config,
+	pub pg: DatabaseConfig,
 	pub server: ServerConfig,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DatabaseConfig {
+	pub user: String,
+	pub password: String,
+	pub dbname: String,
+	pub host: String,
+	pub port: u16,
 }
 
 #[derive(Deserialize, Debug)]

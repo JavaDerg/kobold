@@ -1,34 +1,58 @@
-use tokio_postgres::types::Type;
-macro_rules! define_sql_functions {
-	(self, $($vis:vis async fn $name:ident($($arg:ident:$type:ty),*) -> $ret:ty => $query:literal;)*) => {
-		$(
-			::casey::shouty! {
-				$vis const $name: &'static $crate::str = $query;
-			}
-			$vis async fn $name($($arg: $args),*) -> $ret { todo!() }
-		)*
-	};
-}
-
 #[derive(Clone)]
 pub struct DbManager {
-	pool: deadpool_postgres::Pool,
+	pool: sqlx::PgPool,
 }
 
 impl DbManager {
-	pub fn new(pool: deadpool_postgres::Pool) -> Self {
-		Self { pool }
+	pub async fn new(config: super::cfg::DatabaseConfig) -> anyhow::Result<Self> {
+		log::debug!("Starting up Postgres pool");
+		let pool = sqlx::PgPool::new(
+			format!(
+				"postgres://{}:{}@{}:{}/{}",
+				config.user, config.password, config.host, config.port, config.dbname
+			)
+			.as_str(),
+		)
+		.await?;
+		init_url_shortener(&pool).await?;
+		Ok(Self { pool })
 	}
 
-	pub async fn lol(&self) -> ::anyhow::Result<()> {
-		let client = self.pool.get().await?;
-		let stmt = client.prepare("").await?;
-		client.query(&stmt, &[]);
-		Ok(())
+	pub async fn count_links(&self) -> ::anyhow::Result<i64> {
+		let res = sqlx::query!("SELECT count(*) FROM links;")
+			.fetch_one(&self.pool)
+			.await?;
+		Ok(res.count.unwrap())
 	}
+}
 
-	define_sql_functions! {
-		self,
-		pub async fn get_people() -> Vec<String> => "SELECT * FROM 'peoples'";
-	}
+async fn init_url_shortener(pool: &sqlx::PgPool) -> anyhow::Result<()> {
+	log::debug!("Initializing Database");
+	sqlx::query!(
+		r#"
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'link_redirect') THEN
+		CREATE TYPE link_redirect AS ENUM ('http', 'js', 'captcha');
+	END IF;
+END$$;
+	"#
+	)
+	.execute(pool)
+	.await?;
+	sqlx::query!(
+		r#"
+CREATE TABLE IF NOT EXISTS public.links
+(
+    key TEXT PRIMARY KEY,
+    link TEXT NOT NULL,
+	token UUID NOT NULL,
+	type link_redirect NOT NULL
+);
+	"#
+	)
+	.execute(pool)
+	.await?;
+
+	Ok(())
 }

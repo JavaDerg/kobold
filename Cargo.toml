@@ -10,14 +10,12 @@ actix-redis = "0.9"
 actix-web = "3.1"
 anyhow = "1.0"
 config = { version = "0.10", default-features = false, features = ["toml"] }
-deadpool-postgres = "0.5"
 env_logger = "0.7"
 log = "0.4"
 redis-async = "0.6"
 serde = "1.0"
-tokio-pg-mapper = "0.1"
-tokio-postgres = "0.5"
-casey = "0.3"
+sqlx = { version = "0.3.5", default-features = false, features = ["runtime-tokio", "macros", "postgres", "uuid", "tls"] }
+
 
 [dev-dependencies]
 cargo-about = "0.2"
