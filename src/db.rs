@@ -1,10 +1,14 @@
+use actix::Addr;
+use actix_redis::RedisActor;
+
 #[derive(Clone)]
 pub struct DbManager {
 	pool: sqlx::PgPool,
+	redis: Addr<RedisActor>,
 }
 
 impl DbManager {
-	pub async fn new(config: super::cfg::DatabaseConfig) -> anyhow::Result<Self> {
+	pub async fn new(config: super::cfg::DatabaseConfig, redis: Addr<RedisActor>) -> anyhow::Result<Self> {
 		log::debug!("Starting up Postgres pool");
 		let pool = sqlx::PgPool::new(
 			format!(
@@ -15,7 +19,7 @@ impl DbManager {
 		)
 		.await?;
 		init_url_shortener(&pool).await?;
-		Ok(Self { pool })
+		Ok(Self { pool, redis })
 	}
 
 	pub async fn count_links(&self) -> ::anyhow::Result<i64> {
@@ -28,26 +32,27 @@ impl DbManager {
 
 async fn init_url_shortener(pool: &sqlx::PgPool) -> anyhow::Result<()> {
 	log::debug!("Initializing Database");
-	sqlx::query!(
-		r#"
-DO $$
-BEGIN
-	IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'link_redirect') THEN
-		CREATE TYPE link_redirect AS ENUM ('http', 'js', 'captcha');
-	END IF;
-END$$;
-	"#
-	)
-	.execute(pool)
-	.await?;
+	/*
+		sqlx::query!(
+			r#"
+	DO $$
+	BEGIN
+		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'link_redirect') THEN
+			CREATE TYPE link_redirect AS ENUM ('http', 'js', 'captcha');
+		END IF;
+	END$$;
+		"#
+		)
+		.execute(pool)
+		.await?;
+		*/
 	sqlx::query!(
 		r#"
 CREATE TABLE IF NOT EXISTS public.links
 (
     key TEXT PRIMARY KEY,
     link TEXT NOT NULL,
-	token UUID NOT NULL,
-	type link_redirect NOT NULL
+	token UUID NOT NULL
 );
 	"#
 	)
