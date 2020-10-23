@@ -3,8 +3,8 @@ use actix_redis::RedisActor;
 
 #[derive(Clone)]
 pub struct DbManager {
-	pool: sqlx::PgPool,
-	redis: Addr<RedisActor>,
+	pub pool: sqlx::PgPool,
+	pub redis: Addr<RedisActor>,
 }
 
 impl DbManager {
@@ -18,8 +18,9 @@ impl DbManager {
 			.as_str(),
 		)
 		.await?;
-		init_url_shortener(&pool).await?;
-		Ok(Self { pool, redis })
+		let this = Self { pool, redis };
+		super::url_shortener::init_url_shortener(&this).await?;
+		Ok(this)
 	}
 
 	pub async fn count_links(&self) -> ::anyhow::Result<i64> {
@@ -30,34 +31,7 @@ impl DbManager {
 	}
 }
 
-async fn init_url_shortener(pool: &sqlx::PgPool) -> anyhow::Result<()> {
-	log::debug!("Initializing Database");
-	/*
-		sqlx::query!(
-			r#"
-	DO $$
-	BEGIN
-		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'link_redirect') THEN
-			CREATE TYPE link_redirect AS ENUM ('http', 'js', 'captcha');
-		END IF;
-	END$$;
-		"#
-		)
-		.execute(pool)
-		.await?;
-		*/
-	sqlx::query!(
-		r#"
-CREATE TABLE IF NOT EXISTS public.links
-(
-    key TEXT PRIMARY KEY,
-    link TEXT NOT NULL,
-	token UUID NOT NULL
-);
-	"#
-	)
-	.execute(pool)
-	.await?;
-
-	Ok(())
+#[inline]
+pub fn wrap_redis_err(error: actix_redis::Error) -> anyhow::Error {
+	anyhow::Error::msg(format!("{}", error))
 }

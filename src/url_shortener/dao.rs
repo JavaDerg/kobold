@@ -2,14 +2,19 @@ pub struct ShortenRequest {}
 
 pub struct ShortenResponse {}
 
-impl Into<super::dto::ShortenRequest> for ShortenRequest {
-	fn into(self) -> ShortenRequest {
-		unimplemented!()
-	}
+pub struct ResolveResponse {
+	pub key: String,
+	pub link: String,
+	pub created: chrono::NaiveDate,
+	pub token: uuid::Uuid,
 }
 
-impl Into<super::dto::ShortenResponse> for ShortenResponse {
-	fn into(self) -> ShortenRequest {
-		unimplemented!()
+impl Into<super::dto::ResolveResponse> for ResolveResponse {
+	fn into(self) -> super::dto::ResolveResponse {
+		super::dto::ResolveResponse {
+			key: self.key,
+			link: self.link,
+			created: self.created,
+		}
 	}
 }

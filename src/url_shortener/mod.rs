@@ -1,5 +1,8 @@
 mod dao;
 mod dto;
+mod service;
+
+pub use service::init_url_shortener;
 
 use crate::db::DbManager;
 use actix_web::{get, post, web, HttpResponse, Responder};
@@ -9,10 +12,17 @@ pub async fn resolve_url(db: web::Data<DbManager>, key: web::Path<String>) -> Ht
 	if key.len() > 10 && key.len() < 6 {
 		return HttpResponse::BadRequest().body("invalid key");
 	}
-	HttpResponse::Ok().body(key.as_ref())
+	match service::resolve_url(db.get_ref(), key.as_ref()).await {
+		Ok(Some(url)) => HttpResponse::Ok().json(""),
+		Ok(None) => HttpResponse::NotFound().finish(),
+		Err(err) => {
+			log::warn!("{}", err);
+			HttpResponse::InternalServerError().finish()
+		}
+	}
 }
 
 #[post("/")]
-pub async fn shorten_url(db: web::Data<DbManager>, body: web::Json<dto::ShortenRequest>) -> impl Responder {
-	"2"
+pub async fn shorten_url(db: web::Data<DbManager>, body: web::Json<dto::ShortenRequest>) -> HttpResponse {
+	todo!()
 }
